@@ -1,7 +1,33 @@
-import { Calculator, CalendarClock, FileCheck2, Layers, MapPinned } from 'lucide-react'
+import { FileCheck2, MapPinned, PackageSearch } from 'lucide-react'
 
-// Customer tools, in the order they appear in the menu, footer, and Tools page.
+// The two customer tools, shown in the menu, footer, and service pages.
 export const tools = [
+  {
+    id: 'estimator',
+    path: '/estimator',
+    title: 'Project Estimator',
+    short: 'Project Estimator',
+    icon: PackageSearch,
+    tone: 'gold',
+    pitch: 'Price it, pick the paper, check your artwork, and send it.',
+    detail: 'Build your job and see a ballpark price. Choose paper and finishing, see the date your files are due, check your artwork, and send it, all in one place.',
+    cta: 'Start estimating',
+  },
+  {
+    id: 'eddm',
+    path: '/eddm-planner',
+    title: 'EDDM Planner',
+    short: 'EDDM Planner',
+    icon: MapPinned,
+    tone: 'coral',
+    pitch: 'Pick routes in your town and plan a mailing.',
+    detail: 'Choose postal routes, see the households you’ll reach, and get printing, postage, and delivery timing in one plan.',
+    cta: 'Plan a mailing',
+  },
+]
+
+// A reference page, not a tool: kept for search traffic and linked from the estimator’s artwork step.
+export const guides = [
   {
     id: 'artwork',
     path: '/artwork-help',
@@ -10,51 +36,8 @@ export const tools = [
     icon: FileCheck2,
     tone: 'cyan',
     pitch: 'Bleed, safe zones, a file checklist, and free templates.',
-    detail: 'See what the cutter sees, check your file before you send it, and download a template at the exact size of your piece.',
-    cta: 'Check my artwork',
-  },
-  {
-    id: 'paper',
-    path: '/paper-guide',
-    title: 'Paper & Finish Guide',
-    short: 'Paper & Finish',
-    icon: Layers,
-    tone: 'gold',
-    pitch: 'Pick a project and a goal. Get a stock and finish suggestion.',
-    detail: 'Plain-English help with paper weights, coatings, laminates, embossing, and die cuts, plus a recommendation you can take straight to a quote.',
-    cta: 'Find my paper',
-  },
-  {
-    id: 'deadline',
-    path: '/deadline-planner',
-    title: 'Deadline Planner',
-    short: 'Deadline Planner',
-    icon: CalendarClock,
-    tone: 'coral',
-    pitch: 'Tell us when you need it. See when files are due.',
-    detail: 'We work backward from your date, counting business days, holidays, proofs, finishing, and mail time.',
-    cta: 'Plan my deadline',
-  },
-  {
-    id: 'estimator',
-    path: '/estimator',
-    title: 'Price Estimator',
-    short: 'Price Estimator',
-    icon: Calculator,
-    tone: 'cyan',
-    pitch: 'An instant ballpark, and how much more quantity saves.',
-    detail: 'Choose a product, size, quantity, and finishing for a price range, then see how the per-piece cost drops as the run grows.',
-    cta: 'Estimate my job',
-  },
-  {
-    id: 'eddm',
-    path: '/eddm-planner',
-    title: 'EDDM Planner',
-    short: 'EDDM Planner',
-    icon: MapPinned,
-    tone: 'gold',
-    pitch: 'Pick routes in your town and plan a mailing.',
-    detail: 'Choose postal routes, see the households you’ll reach, and get printing, postage, and delivery timing in one plan.',
-    cta: 'Plan a mailing',
+    cta: 'Read the guide',
   },
 ]
+
+export const toolById = Object.fromEntries([...tools, ...guides].map((t) => [t.id, t]))

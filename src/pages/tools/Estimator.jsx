@@ -1,17 +1,24 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
-  ArrowRight, BookOpen, Check, ClipboardList, Columns3, Flag, IdCard, Image as ImageIcon, Info, Mail,
-  Minus, NotebookPen, Plus, RotateCcw, ScrollText, Sparkles, Star, TrendingDown,
+  ArrowRight, BookOpen, CalendarCheck, Check, ChevronLeft, ClipboardList, Clock3 as Clock, Columns3, FileUp, Flag, IdCard,
+  Image as ImageIcon, Info, Mail, Minus, NotebookPen, Plus, RotateCcw, ScrollText, Sparkles, Star, TrendingDown, TriangleAlert,
 } from 'lucide-react'
 import PageHero from '../../components/PageHero'
 import SEO from '../../components/SEO'
 import {
-  COLOR_MODES, FINISHING, PAPER_IDS, PRODUCTS, PRODUCT_LIST, TURNAROUND,
+  COLOR_MODES, DESIGN_FEE_DEMO, FINISHING, PRODUCTS, PRODUCT_LIST, TURNAROUND,
   curveSeries, describeJob, estimate, fmtEach, fmtMoney, fmtQty, fmtQtyShort,
   makeConfig, nearestStepIndex, normalizeConfig, volumeInsights,
 } from './pricingData'
+import { addDays, fromIso, iso } from './deadlineData'
+import { checklist } from './templateData'
+import { DESIGN_DAYS, STEPS, cfgFromParams, paramsFor, pieceGeometry, schedule, todayNoon } from './flow/flowLogic'
+import PaperStep from './flow/PaperStep'
+import ArtworkStep from './flow/ArtworkStep'
+import { OrderSheet, SendForm } from './flow/SendStep'
 import './estimator.css'
+import './flow/flow.css'
 
 const ICONS = { cards: IdCard, flyers: ScrollText, postcards: Mail, brochures: Columns3, booklets: BookOpen, posters: ImageIcon, banners: Flag, notepads: NotebookPen, forms: ClipboardList }
 
@@ -25,6 +32,8 @@ const PRESETS = [
 
 const INK_COLORS = { c: 'var(--ink-c)', m: 'var(--ink-m)', y: 'var(--ink-y)', k: 'var(--ink-k)' }
 const PART_COLORS = { setup: '#00a6c8', printing: '#f15a4a', paper: '#f2b134', finishing: '#fffefa', minimum: '#8fa5b4', rush: '#ffa89e' }
+
+/* ---------- small hooks ---------- */
 
 /* ---------- small hooks ---------- */
 
@@ -238,7 +247,7 @@ function Step({ n, title, hint, id, children, className = '' }) {
   return (
     <section className={`est-step ${className}`} aria-labelledby={id}>
       <header className="est-step__head">
-        <span className="est-step__n" aria-hidden="true">{String(n).padStart(2, '0')}</span>
+        <span className="est-step__n" aria-hidden="true">{n}</span>
         <div>
           <h2 id={id}>{title}</h2>
           {hint && <p>{hint}</p>}
@@ -260,15 +269,83 @@ function Choice({ type = 'radio', name, value, checked, onChange, disabled, clas
 
 const hashString = (s) => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7)
 
-/* ---------- page ---------- */
+/* ---------- the Project Estimator ---------- */
+
+const GOAL_IDS = ['premium', 'budget', 'durable', 'natural']
+const fmtDay = (d) => d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+const fmtDayLong = (d) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+
+function WhenAdvice({ sched, cfg, neededIso, onSwitch }) {
+  if (sched.mode === 'open') {
+    return (
+      <p className="es-when-note es-when-note--ok">
+        <Clock aria-hidden="true" />
+        <span>No date? No problem. At <b>{cfg.turn === 'standard' ? 'standard' : TURNAROUND.find((t) => t.id === cfg.turn).label.toLowerCase()}</b> turnaround, if your final files arrive today, your project could be ready about <b>{fmtDayLong(sched.earliest)}</b>.</span>
+      </p>
+    )
+  }
+  const tone = sched.status === 'late' ? 'hot' : sched.status === 'tight' ? 'warn' : 'ok'
+  const switchTo = sched.suggestion ? TURNAROUND.find((t) => t.id === sched.suggestion.turn) : null
+  return (
+    <div className={`es-when-note es-when-note--${tone}`} role="status" aria-live="polite">
+      {tone === 'ok' ? <CalendarCheck aria-hidden="true" /> : <TriangleAlert aria-hidden="true" />}
+      <div>
+        {sched.status === 'late' && <p><b>That date is too soon for {TURNAROUND.find((t) => t.id === cfg.turn).label.toLowerCase()} turnaround.</b></p>}
+        {sched.status === 'tight' && <p><b>Tight, but doable.</b> Send your final files as early as you can.</p>}
+        {(sched.status === 'good' || sched.status === 'roomy') && <p><b>{sched.status === 'roomy' ? 'Plenty of room.' : 'Right on schedule.'}</b> Send your final files by <b>{fmtDayLong(sched.submitBy)}</b>.</p>}
+        {sched.status === 'tight' && <p>Final files due <b>{fmtDayLong(sched.submitBy)}</b>{sched.designDays ? `, with design starting by ${fmtDay(sched.startBy)}` : ''}.</p>}
+        {sched.status === 'late' && switchTo && (
+          <p>To make {fmtDay(fromIso(neededIso))}, switch to <b>{switchTo.label}</b> ({switchTo.detail}, +{Math.round(switchTo.pct * 100)}%). <button type="button" className="es-linkbtn" onClick={() => onSwitch(switchTo.id)}>Switch to {switchTo.label}</button></p>
+        )}
+        {sched.status === 'late' && !switchTo && (
+          <p>“I know this is last minute, but can I still get it by…” is a question Henle hears all the time. <a href="tel:+15075324493">Call 507-532-4493</a> and we’ll see what’s possible.</p>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function Estimator() {
-  const [cfg, setCfg] = useState(() => makeConfig('flyers', { qty: 1000, sides: 2 }))
+  const [params, setParams] = useSearchParams()
+  const today = useMemo(todayNoon, [])
+  const cfg = useMemo(() => cfgFromParams(params), [params])
+  const stepId = STEPS.some((s) => s.id === params.get('step')) ? params.get('step') : 'project'
+  const stepIdx = STEPS.findIndex((s) => s.id === stepId)
+  const neededIso = params.get('needed') || ''
+  const art = ['file', 'design', 'later'].includes(params.get('art')) ? params.get('art') : ''
+  const goal = GOAL_IDS.includes(params.get('goal')) ? params.get('goal') : ''
+
   const p = PRODUCTS[cfg.product]
   const size = p.sizes.find((s) => s.id === cfg.size)
+  const geo = useMemo(() => pieceGeometry(cfg), [cfg])
 
-  const update = (patch) => setCfg((c) => normalizeConfig({ ...c, ...patch }))
-  const pickProduct = (id) => setCfg((c) => makeConfig(id, { color: c.color, paper: c.paper, turn: c.turn }))
+  // Everything lives in the page address, so a project can be shared or resumed.
+  const write = (patch = {}, nextCfg = cfg, push = false) => {
+    setParams(paramsFor(nextCfg, { step: stepId, needed: neededIso, art, goal, ...patch }), { replace: !push, preventScrollReset: true })
+  }
+  const update = (patch) => write({}, normalizeConfig({ ...cfg, ...patch }))
+  const pickProduct = (id) => write({}, makeConfig(id, { color: cfg.color, paper: cfg.paper, turn: cfg.turn }))
+
+  const [checks, setChecks] = useState(() => new Set())
+  const [file, setFile] = useState(null)
+  const [fileResult, setFileResult] = useState(null)
+  const [brief, setBrief] = useState('')
+  const [order, setOrder] = useState(null)
+  const [maxStep, setMaxStep] = useState(stepIdx)
+  const stepperRef = useRef(null)
+  const firstRender = useRef(true)
+  const reduce = useReducedMotion()
+
+  useEffect(() => { setMaxStep((m) => Math.max(m, stepIdx)) }, [stepIdx])
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return }
+    stepperRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
+  }, [stepId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const goTo = (id) => write({ step: id === 'project' ? '' : id }, cfg, true)
+  const next = () => { if (stepIdx < STEPS.length - 1) goTo(STEPS[stepIdx + 1].id) }
+  const back = () => { if (stepIdx > 0) goTo(STEPS[stepIdx - 1].id) }
+
   const idx = nearestStepIndex(p.qtySteps, cfg.qty)
   const unitWord = cfg.qty === 1 ? p.unit : p.noun
 
@@ -277,299 +354,361 @@ export default function Estimator() {
   const series = useMemo(() => curveSeries(cfg, 64), [cfg])
   const seriesV = useMemo(() => series.map((s) => s.v), [series])
   const vShown = useTween(seriesV)
-  const [low, high, each] = useTween(useMemo(() => [est.low, est.high, est.perPiece], [est]), 420)
+  const fee = art === 'design' ? DESIGN_FEE_DEMO : 0
+  const [low, high, each] = useTween(useMemo(() => [est.low + fee, est.high + fee, (est.total + fee) / est.qty], [est, fee]), 420)
 
-  const job = describeJob(est)
-  const quoteTo = `/quote?service=${job.service}&project=${encodeURIComponent(job.text)}`
-  const ticketNo = 1000 + (hashString(JSON.stringify(cfg)) % 9000)
-  const total = est.breakdown.reduce((a, b) => a + b.amount, 0)
-  const range = `${fmtMoney(est.low)} – ${fmtMoney(est.high)}`
+  const sched = useMemo(() => schedule({ turn: cfg.turn, neededIso, today, designDays: art === 'design' ? DESIGN_DAYS : 0 }), [cfg.turn, neededIso, today, art])
+
+  const total = est.breakdown.reduce((a, b) => a + b.amount, 0) + fee
+  const range = `${fmtMoney(Math.round(est.low + fee))} – ${fmtMoney(Math.round(est.high + fee))}`
   const eachLabel = est.perSqFt && p.kind === 'large' ? `${fmtEach(est.perSqFt)} / sq ft` : null
+  const ticketNo = 1000 + (hashString(JSON.stringify(cfg)) % 9000)
 
-  const groups = p.exclusive || []
-  const binding = groups[0]
+  const binding = (p.exclusive || [])[0]
   const chips = p.finishing.filter((f) => !(binding || []).includes(f))
-  const hasExtraFinish = cfg.finishing.some((f) => chips.includes(f))
-  const toggleFinish = (id) => update({ finishing: cfg.finishing.includes(id) ? cfg.finishing.filter((f) => f !== id) : [...cfg.finishing, id] })
-  const setBinding = (id) => update({ finishing: [...cfg.finishing.filter((f) => !binding.includes(f)), id] })
-
+  void chips
   const { compare, nudge, sweet, ladder } = insights
-  const compareUnit = p.unit
+
+  const artSummary = art === 'file'
+    ? (file ? `${file.name}${fileResult ? ` (${fileResult.level === 'good' ? 'looks good' : fileResult.level === 'warn' ? 'has notes' : 'needs attention'})` : ''}` : 'Will upload a file') + (checks.size ? `, checklist ${checks.size}/${checklist.length}` : '')
+    : art === 'design' ? `Henle designs it (${fmtMoney(DESIGN_FEE_DEMO)} demo fee)${brief ? `: “${brief.length > 80 ? `${brief.slice(0, 80)}…` : brief}”` : ''}`
+      : art === 'later' ? 'Will send the artwork later' : 'Not chosen yet'
+
+  const dateLine = sched.mode === 'date'
+    ? [['Needed by', fmtDayLong(sched.goal)], ['Final files due', sched.status === 'late' ? 'Too soon for this turnaround, so call us' : fmtDayLong(sched.submitBy)]]
+    : [['Needed by', 'No date set'], ['Ready about', `${fmtDayLong(sched.earliest)} (if files arrive today)`]]
+
+  const summary = [
+    ['Product', p.label],
+    ['Size', `${size.label}${p.extra ? ` · ${cfg.extra} ${p.extra.word}` : ''}`],
+    ['Quantity', `${fmtQty(cfg.qty)} ${unitWord}`],
+    ['Ink', `${COLOR_MODES.find((c) => c.id === cfg.color).label}${p.sidesMode === 'locked1' ? '' : cfg.sides === 2 ? ', 2-sided' : ', 1-sided'}`],
+    ['Paper', p.papers[cfg.paper].label],
+    ['Finishing', cfg.finishing.length ? cfg.finishing.map((f) => FINISHING[f].label).join(', ') : 'None'],
+    ['Turnaround', `${est.turn.label} (${est.turn.detail})`],
+    ...dateLine,
+    ['Artwork', artSummary],
+  ]
+
+  const submit = (contact) => {
+    setOrder({ contact, summary, number: ticketNo, at: new Date(), title: `${fmtQty(cfg.qty)} ${p.label.toLowerCase()}`, range, each: `≈ ${fmtEach(est.perPiece)}` })
+    window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' })
+  }
+  const reset = () => { setOrder(null); setFile(null); setFileResult(null); setChecks(new Set()); setBrief(''); setMaxStep(0); setParams(paramsFor(makeConfig('flyers', { qty: 1000, sides: 2 })), { replace: true, preventScrollReset: true }) }
+
+  const quickQuote = `/quote?service=${p.service(cfg.qty)}&project=${encodeURIComponent(describeJob(est).text)}`
+  const isLast = stepIdx === STEPS.length - 1
 
   return (
     <>
-      <SEO title="Printing Price Estimator" description="Build a business card, flyer, postcard, brochure, booklet, poster, banner, notepad, or form job and see an instant ballpark price range with volume discounts." path="/estimator" />
-      <PageHero eyebrow="Ballpark estimator" title="Know the number before you call." intro="Build your job below and watch the price settle into a realistic range. It takes a minute, it’s a ballpark rather than a bid, and the quantity curve shows exactly where your money works hardest." tone="gold" />
+      <SEO title="Project Estimator: Price, Paper & Artwork in One Place" description="Build your printing job, see a ballpark price and the date your files are due, pick paper and finishing, check your artwork, and send it to Henle in one guided flow." path="/estimator" />
+      <PageHero eyebrow="Project estimator" title="Price it. Pick it. Send it." intro="Build your job and watch the price settle into a realistic range. Choose your paper and finish, check your artwork, and send it, all in one place. Prefer to just ask? Send a quick quote request instead." tone="gold" />
 
-      <section className="est section">
+      <section className="est es section">
         <div className="shell">
-          <div className="est-presets">
-            <span>Start from a common job</span>
-            {PRESETS.map((preset) => (
-              <button type="button" key={preset.label} onClick={() => setCfg(makeConfig(preset.product, preset.patch))}>
-                <Sparkles aria-hidden="true" /> {preset.label}
-              </button>
-            ))}
-          </div>
+          {order ? <OrderSheet order={order} onReset={reset} /> : (
+            <>
+              <nav className="es-stepper" ref={stepperRef} aria-label="Project steps">
+                <ol>
+                  {STEPS.map((s, i) => (
+                    <li key={s.id} className={i === stepIdx ? 'is-current' : i < maxStep || (i < stepIdx) ? 'is-done' : ''}>
+                      <button type="button" onClick={() => goTo(s.id)} aria-current={i === stepIdx ? 'step' : undefined}>
+                        <span className="es-stepper__n">{i < stepIdx || (i < maxStep && i !== stepIdx) ? <Check aria-hidden="true" /> : i + 1}</span>
+                        <b>{s.label}</b>
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+                <span className="es-stepper__bar" aria-hidden="true"><i style={{ width: `${((stepIdx + 1) / STEPS.length) * 100}%` }} /></span>
+              </nav>
 
-          <div className="est__layout">
-            <div className="est__steps">
-              <Step n={1} id="est-s-product" title="What are we printing?" hint="Pick the closest match. You can fine-tune everything below.">
-                <div className="est-products" role="radiogroup" aria-labelledby="est-s-product">
-                  {PRODUCT_LIST.map((prod) => {
-                    const Icon = ICONS[prod.id]
-                    return (
-                      <Choice key={prod.id} name="est-product" value={prod.id} checked={cfg.product === prod.id} onChange={pickProduct} className="est-choice--product">
-                        <Icon aria-hidden="true" />
-                        <strong>{prod.label}</strong>
-                        <small>{prod.blurb}</small>
-                      </Choice>
-                    )
-                  })}
-                </div>
-              </Step>
-
-              <Step n={2} id="est-s-size" title="What size?" hint={p.extra ? `${p.extra.label}: ${p.extra.help}` : 'Finished size, after trimming.'}>
-                <div className="est-sizewrap">
-                  <div className="est-sizes" role="radiogroup" aria-labelledby="est-s-size">
-                    {p.sizes.map((s) => (
-                      <Choice key={s.id} name="est-size" value={s.id} checked={cfg.size === s.id} onChange={(v) => update({ size: v })} className="est-choice--chip">
-                        <strong>{s.label}</strong>
-                        <small>{s.note}</small>
-                      </Choice>
-                    ))}
-                  </div>
-                  <PiecePreview product={p} size={size} cfg={cfg} />
-                </div>
-                {p.extra && (
-                  <div className="est-extra">
-                    <span id="est-extra-label">{p.extra.label}</span>
-                    <div role="radiogroup" aria-labelledby="est-extra-label" className="est-seg">
-                      {p.extra.options.map((o) => (
-                        <Choice key={o} name="est-extra" value={o} checked={cfg.extra === o} onChange={(v) => update({ extra: Number(v) })} className="est-choice--seg">
-                          {o}
-                        </Choice>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </Step>
-
-              <Step n={3} id="est-s-qty" title="How many?" hint="Drag the slider. The curve shows what each piece costs as the run grows." className="est-step--qty">
-                <div className="est-qty">
-                  <div className="est-qty__readout">
-                    <button type="button" className="est-qty__step" aria-label="Fewer" onClick={() => update({ qty: p.qtySteps[Math.max(0, idx - 1)] })} disabled={idx === 0}><Minus aria-hidden="true" /></button>
-                    <div className="est-qty__number">
-                      <output htmlFor="est-qty-range" aria-hidden="true">{fmtQty(cfg.qty)}</output>
-                      <span>{unitWord}</span>
-                    </div>
-                    <button type="button" className="est-qty__step" aria-label="More" onClick={() => update({ qty: p.qtySteps[Math.min(p.qtySteps.length - 1, idx + 1)] })} disabled={idx === p.qtySteps.length - 1}><Plus aria-hidden="true" /></button>
-                  </div>
-                  <input
-                    id="est-qty-range" className="est-slider" type="range" min="0" max={p.qtySteps.length - 1} step="1" value={idx}
-                    aria-label="Quantity" aria-valuetext={`${fmtQty(cfg.qty)} ${unitWord}`}
-                    style={{ '--pct': `${(idx / (p.qtySteps.length - 1)) * 100}%` }}
-                    onChange={(e) => update({ qty: p.qtySteps[Number(e.target.value)] })}
-                  />
-                  <div className="est-slider__ends" aria-hidden="true"><span>{fmtQtyShort(p.qtySteps[0])}</span><span>{fmtQtyShort(p.qtySteps.at(-1))}</span></div>
-                </div>
-
-                <div className="est-chart">
-                  <PriceCurve series={series} vShown={vShown} qty={cfg.qty} steps={p.qtySteps} compare={compare} sweet={sweet} unitWord={p.unit} productId={p.id} />
-                </div>
-
-                <div className="est-insight" aria-live="polite">
-                  <TrendingDown aria-hidden="true" />
-                  {compare ? (
-                    <p>
-                      Order <b>{fmtQty(compare.big)}</b> and each {compareUnit} costs <b className="est-insight__pct">{compare.pct}% less</b> than {fmtQty(compare.small)}.
-                      <span>{fmtEach(ladder.find((r) => r.q === compare.small).per)} → {fmtEach(ladder.find((r) => r.q === compare.big).per)} each</span>
-                    </p>
-                  ) : <p>Quantity changes the price per {compareUnit}. Move the slider to see it.</p>}
-                </div>
-
-                {nudge.kind === 'more' ? (
-                  <div className="est-nudge">
-                    <Star aria-hidden="true" />
-                    <p>
-                      <b>Order more, pay less per {p.unit}.</b> Step up to {fmtQty(nudge.target)} for {fmtMoney(nudge.extra)} more
-                      ({nudge.times.toFixed(nudge.times % 1 ? 1 : 0)}× the {p.noun}) and each drops {nudge.savingPct}% to {fmtEach(nudge.per)}.
-                      {nudge.sweet > nudge.target && <span> The sweet spot for this job is around {fmtQty(nudge.sweet)}.</span>}
-                    </p>
-                    <button type="button" className="button button--small button--dark" onClick={() => update({ qty: nudge.target })}>Use {fmtQty(nudge.target)}</button>
-                  </div>
-                ) : (
-                  <div className="est-nudge est-nudge--ok">
-                    <Check aria-hidden="true" />
-                    <p><b>You’re in the sweet spot.</b> Past {fmtQty(nudge.sweet)}, each doubling trims under 12% off the price of every {p.unit}.</p>
-                  </div>
-                )}
-
-                <div className="est-ladder" role="group" aria-label="Quantity price ladder">
-                  {ladder.map((r) => (
-                    <button type="button" key={r.q} aria-pressed={r.q === cfg.qty} className={r.q === sweet ? 'is-sweet' : ''} onClick={() => update({ qty: r.q })}>
-                      <b>{fmtQty(r.q)}</b>
-                      <span>{fmtEach(r.per)} ea</span>
-                      {r.q === sweet && <i>Sweet spot</i>}
+              {stepIdx === 0 && (
+                <div className="est-presets">
+                  <span>Start from a common job</span>
+                  {PRESETS.map((preset) => (
+                    <button type="button" key={preset.label} onClick={() => write({}, makeConfig(preset.product, preset.patch))}>
+                      <Sparkles aria-hidden="true" /> {preset.label}
                     </button>
                   ))}
                 </div>
-              </Step>
+              )}
 
-              <Step n={4} id="est-s-ink" title="Ink & sides" hint="How much color, and how many sides.">
-                <div className="est-colors" role="radiogroup" aria-labelledby="est-s-ink">
-                  {COLOR_MODES.map((c) => (
-                    <Choice key={c.id} name="est-color" value={c.id} checked={cfg.color === c.id} onChange={(v) => update({ color: v })} className="est-choice--color">
-                      <span className="est-dots" aria-hidden="true">{c.inks.map((k) => <i key={k} style={{ background: INK_COLORS[k] }} />)}</span>
-                      <strong>{c.label}</strong>
-                      <small>{c.detail}</small>
-                    </Choice>
-                  ))}
-                </div>
-                <div className="est-extra">
-                  <span id="est-sides-label">Sides printed</span>
-                  <div role="radiogroup" aria-labelledby="est-sides-label" className="est-seg">
-                    {[1, 2].map((n) => (
-                      <Choice key={n} name="est-sides" value={n} checked={cfg.sides === n} onChange={(v) => update({ sides: Number(v) })} disabled={p.sidesMode !== 'free'} className="est-choice--seg est-choice--wide">
-                        {n === 1 ? '1 side' : '2 sides'}
-                      </Choice>
-                    ))}
+              <div className="est__layout">
+                <div className="est__steps" key={stepId}>
+                  {stepId === 'project' && (
+                    <>
+                      <Step n="A" id="est-s-product" title="What are we printing?" hint="Pick the closest match. You can fine-tune everything below.">
+                        <div className="est-products" role="radiogroup" aria-labelledby="est-s-product">
+                          {PRODUCT_LIST.map((prod) => {
+                            const Icon = ICONS[prod.id]
+                            return (
+                              <Choice key={prod.id} name="est-product" value={prod.id} checked={cfg.product === prod.id} onChange={pickProduct} className="est-choice--product">
+                                <Icon aria-hidden="true" />
+                                <strong>{prod.label}</strong>
+                                <small>{prod.blurb}</small>
+                              </Choice>
+                            )
+                          })}
+                        </div>
+                      </Step>
+
+                      <Step n="B" id="est-s-size" title="What size?" hint={p.extra ? `${p.extra.label}: ${p.extra.help}` : 'Finished size, after trimming.'}>
+                        <div className="est-sizewrap">
+                          <div className="est-sizes" role="radiogroup" aria-labelledby="est-s-size">
+                            {p.sizes.map((s) => (
+                              <Choice key={s.id} name="est-size" value={s.id} checked={cfg.size === s.id} onChange={(v) => update({ size: v })} className="est-choice--chip">
+                                <strong>{s.label}</strong>
+                                <small>{s.note}</small>
+                              </Choice>
+                            ))}
+                          </div>
+                          <PiecePreview product={p} size={size} cfg={cfg} />
+                        </div>
+                        {p.extra && (
+                          <div className="est-extra">
+                            <span id="est-extra-label">{p.extra.label}</span>
+                            <div role="radiogroup" aria-labelledby="est-extra-label" className="est-seg">
+                              {p.extra.options.map((o) => (
+                                <Choice key={o} name="est-extra" value={o} checked={cfg.extra === o} onChange={(v) => update({ extra: Number(v) })} className="est-choice--seg">
+                                  {o}
+                                </Choice>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </Step>
+
+                      <Step n="C" id="est-s-qty" title="How many?" hint="Drag the slider. The curve shows what each piece costs as the run grows." className="est-step--qty">
+                        <div className="est-qty">
+                          <div className="est-qty__readout">
+                            <button type="button" className="est-qty__step" aria-label="Fewer" onClick={() => update({ qty: p.qtySteps[Math.max(0, idx - 1)] })} disabled={idx === 0}><Minus aria-hidden="true" /></button>
+                            <div className="est-qty__number">
+                              <output htmlFor="est-qty-range" aria-hidden="true">{fmtQty(cfg.qty)}</output>
+                              <span>{unitWord}</span>
+                            </div>
+                            <button type="button" className="est-qty__step" aria-label="More" onClick={() => update({ qty: p.qtySteps[Math.min(p.qtySteps.length - 1, idx + 1)] })} disabled={idx === p.qtySteps.length - 1}><Plus aria-hidden="true" /></button>
+                          </div>
+                          <input
+                            id="est-qty-range" className="est-slider" type="range" min="0" max={p.qtySteps.length - 1} step="1" value={idx}
+                            aria-label="Quantity" aria-valuetext={`${fmtQty(cfg.qty)} ${unitWord}`}
+                            style={{ '--pct': `${(idx / (p.qtySteps.length - 1)) * 100}%` }}
+                            onChange={(e) => update({ qty: p.qtySteps[Number(e.target.value)] })}
+                          />
+                          <div className="est-slider__ends" aria-hidden="true"><span>{fmtQtyShort(p.qtySteps[0])}</span><span>{fmtQtyShort(p.qtySteps.at(-1))}</span></div>
+                        </div>
+
+                        <div className="est-chart">
+                          <PriceCurve series={series} vShown={vShown} qty={cfg.qty} steps={p.qtySteps} compare={compare} sweet={sweet} unitWord={p.unit} productId={p.id} />
+                        </div>
+
+                        <div className="est-insight" aria-live="polite">
+                          <TrendingDown aria-hidden="true" />
+                          {compare ? (
+                            <p>
+                              Order <b>{fmtQty(compare.big)}</b> and each {p.unit} costs <b className="est-insight__pct">{compare.pct}% less</b> than {fmtQty(compare.small)}.
+                              <span>{fmtEach(ladder.find((r) => r.q === compare.small).per)} → {fmtEach(ladder.find((r) => r.q === compare.big).per)} each</span>
+                            </p>
+                          ) : <p>Quantity changes the price per {p.unit}. Move the slider to see it.</p>}
+                        </div>
+
+                        {nudge.kind === 'more' ? (
+                          <div className="est-nudge">
+                            <Star aria-hidden="true" />
+                            <p>
+                              <b>Order more, pay less per {p.unit}.</b> Step up to {fmtQty(nudge.target)} for {fmtMoney(nudge.extra)} more
+                              ({nudge.times.toFixed(nudge.times % 1 ? 1 : 0)}× the {p.noun}) and each drops {nudge.savingPct}% to {fmtEach(nudge.per)}.
+                              {nudge.sweet > nudge.target && <span> The sweet spot for this job is around {fmtQty(nudge.sweet)}.</span>}
+                            </p>
+                            <button type="button" className="button button--small button--dark" onClick={() => update({ qty: nudge.target })}>Use {fmtQty(nudge.target)}</button>
+                          </div>
+                        ) : (
+                          <div className="est-nudge est-nudge--ok">
+                            <Check aria-hidden="true" />
+                            <p><b>You’re in the sweet spot.</b> Past {fmtQty(nudge.sweet)}, each doubling trims under 12% off the price of every {p.unit}.</p>
+                          </div>
+                        )}
+
+                        <div className="est-ladder" role="group" aria-label="Quantity price ladder">
+                          {ladder.map((r) => (
+                            <button type="button" key={r.q} aria-pressed={r.q === cfg.qty} className={r.q === sweet ? 'is-sweet' : ''} onClick={() => update({ qty: r.q })}>
+                              <b>{fmtQty(r.q)}</b>
+                              <span>{fmtEach(r.per)} ea</span>
+                              {r.q === sweet && <i>Sweet spot</i>}
+                            </button>
+                          ))}
+                        </div>
+                      </Step>
+
+                      <Step n="D" id="est-s-ink" title="Ink & sides" hint="How much color, and how many sides.">
+                        <div className="est-colors" role="radiogroup" aria-labelledby="est-s-ink">
+                          {COLOR_MODES.map((c) => (
+                            <Choice key={c.id} name="est-color" value={c.id} checked={cfg.color === c.id} onChange={(v) => update({ color: v })} className="est-choice--color">
+                              <span className="est-dots" aria-hidden="true">{c.inks.map((k) => <i key={k} style={{ background: INK_COLORS[k] }} />)}</span>
+                              <strong>{c.label}</strong>
+                              <small>{c.detail}</small>
+                            </Choice>
+                          ))}
+                        </div>
+                        <div className="est-extra">
+                          <span id="est-sides-label">Sides printed</span>
+                          <div role="radiogroup" aria-labelledby="est-sides-label" className="est-seg">
+                            {[1, 2].map((n) => (
+                              <Choice key={n} name="est-sides" value={n} checked={cfg.sides === n} onChange={(v) => update({ sides: Number(v) })} disabled={p.sidesMode !== 'free'} className="est-choice--seg est-choice--wide">
+                                {n === 1 ? '1 side' : '2 sides'}
+                              </Choice>
+                            ))}
+                          </div>
+                          {p.sidesMode !== 'free' && <small className="est-extra__note">{p.sidesNote}</small>}
+                        </div>
+                      </Step>
+
+                      <Step n="E" id="est-s-turn" title="When do you need it?" hint="Add a date and we’ll work backward to the day your files are due. Standard is the best value. Rush jumps the line.">
+                        <label className="es-field es-field--date">Needed by <span className="es-opt">(optional)</span>
+                          <input type="date" value={neededIso} min={iso(addDays(today, 1))} onChange={(event) => write({ needed: event.target.value })} />
+                        </label>
+                        <div className="est-turns" role="radiogroup" aria-label="Turnaround">
+                          {TURNAROUND.map((t) => (
+                            <Choice key={t.id} name="est-turn" value={t.id} checked={cfg.turn === t.id} onChange={(v) => update({ turn: v })} className="est-choice--turn">
+                              <strong>{t.label}</strong>
+                              <small>{t.detail}</small>
+                              <em>{t.pct ? `+${Math.round(t.pct * 100)}%` : 'Base price'}</em>
+                            </Choice>
+                          ))}
+                        </div>
+                        <WhenAdvice sched={sched} cfg={cfg} neededIso={neededIso} onSwitch={(turn) => update({ turn })} />
+                      </Step>
+                    </>
+                  )}
+
+                  {stepId === 'paper' && (
+                    <PaperStep cfg={cfg} est={est} p={p} update={update} goal={goal} setGoal={(g) => write({ goal: g })} Choice={Choice} Step={Step} />
+                  )}
+
+                  {stepId === 'artwork' && (
+                    <ArtworkStep
+                      cfg={cfg} p={p} geo={geo} art={art} setArt={(a) => write({ art: a })}
+                      checks={checks} setChecks={setChecks} file={file} setFile={setFile} fileResult={fileResult} setFileResult={setFileResult}
+                      brief={brief} setBrief={setBrief} sched={sched} Step={Step}
+                    />
+                  )}
+
+                  {stepId === 'send' && <SendForm onSubmit={submit} art={art} file={file} summary={summary} Step={Step} />}
+
+                  <div className="es-nav">
+                    {stepIdx > 0 ? <button type="button" className="button es-btn-ghost" onClick={back}><ChevronLeft aria-hidden="true" /> Back</button> : <span />}
+                    {isLast
+                      ? <button type="submit" form="es-send-form" className="button es-nav__next">Get my exact quote <ArrowRight aria-hidden="true" /></button>
+                      : <button type="button" className="button es-nav__next" onClick={next}>{STEPS[stepIdx].next} <ArrowRight aria-hidden="true" /></button>}
                   </div>
-                  {p.sidesMode !== 'free' && <small className="est-extra__note">{p.sidesNote}</small>}
                 </div>
-              </Step>
 
-              <Step n={5} id="est-s-paper" title="Paper" hint="The stock changes the feel and the price.">
-                <div className="est-papers" role="radiogroup" aria-labelledby="est-s-paper">
-                  {PAPER_IDS.map((id) => (
-                    <Choice key={id} name="est-paper" value={id} checked={cfg.paper === id} onChange={(v) => update({ paper: v })} className="est-choice--paper">
-                      <span className={`est-swatch est-swatch--${id}`} aria-hidden="true" />
-                      <strong>{p.papers[id].label}</strong>
-                      <small>{p.papers[id].detail}</small>
-                    </Choice>
-                  ))}
-                </div>
-              </Step>
+                <aside className="est-ticket" id="est-result" aria-label="Your order card">
+                  <div className="est-ticket__head">
+                    <span>Your project</span>
+                    <span>No. {ticketNo}</span>
+                  </div>
+                  <div className="est-ticket__body">
+                    <p className="est-ticket__label">Your range</p>
+                    <p className="est-ticket__range" style={{ '--len': range.length - 1 }} aria-hidden="true">{fmtMoney(Math.round(low))}<i>–</i>{fmtMoney(Math.round(high))}</p>
+                    <p className="sr-only" role="status">Ballpark {range}, about {fmtEach(est.perPiece)} each.</p>
+                    <p className="est-ticket__each">
+                      <b>≈ {fmtEach(each)}</b> each
+                      <span>{fmtQty(est.qty)} {est.qty === 1 ? p.unit : p.noun}{fee ? ' · design included' : ''}</span>
+                      {eachLabel && <span>{eachLabel} on average</span>}
+                    </p>
+                    <p className="est-chip"><Info aria-hidden="true" /> Demo rates · Henle’s real price list plugs in here</p>
 
-              <Step n={6} id="est-s-finish" title="Finishing" hint={p.includedNote || 'Optional extras, added after printing.'}>
-                {binding && (
-                  <div className="est-extra est-extra--binding">
-                    <span id="est-bind-label">Binding</span>
-                    <div role="radiogroup" aria-labelledby="est-bind-label" className="est-seg est-seg--long">
-                      {binding.map((id) => {
-                        const off = (id === 'perfect' && cfg.extra < 28) || (id === 'staple' && cfg.extra > 64)
-                        return (
-                          <Choice key={id} name="est-binding" value={id} checked={cfg.finishing.includes(id)} onChange={setBinding} disabled={off} className="est-choice--seg est-choice--wide">
-                            {FINISHING[id].label}
-                          </Choice>
-                        )
-                      })}
+                    <ul className="est-specs" aria-label="Job summary">
+                      <li>{p.label}</li>
+                      <li>{size.label}{p.extra ? ` · ${cfg.extra} ${p.extra.word}` : ''}</li>
+                      <li>{COLOR_MODES.find((c) => c.id === cfg.color).label}{p.sidesMode === 'locked1' ? '' : ` · ${cfg.sides === 2 ? '2-sided' : '1-sided'}`}</li>
+                      <li>{p.papers[cfg.paper].label}</li>
+                      {cfg.finishing.length > 0 && <li>{cfg.finishing.map((f) => FINISHING[f].label).join(', ')}</li>}
+                      <li>{est.turn.label} · {est.turn.detail}</li>
+                    </ul>
+
+                    <div className={`es-when es-when--${sched.mode === 'date' ? sched.status : 'open'}`}>
+                      <CalendarCheck aria-hidden="true" />
+                      <div>
+                        {sched.mode === 'date' ? (
+                          <>
+                            <small>{sched.status === 'late' ? 'This date needs a faster option' : 'Send final files by'}</small>
+                            <b>{sched.status === 'late' ? fmtDay(fromIso(neededIso)) : fmtDayLong(sched.submitBy)}</b>
+                            <span>Needed by {fmtDay(sched.goal)}</span>
+                          </>
+                        ) : (
+                          <>
+                            <small>If files arrive today</small>
+                            <b>Ready about {fmtDay(sched.earliest)}</b>
+                            <span>Add a date to plan backward</span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <small className="est-extra__note">{cfg.extra > 64 ? 'Over 64 pages, we bind with a spine.' : cfg.extra < 28 ? 'Perfect binding needs 28 pages or more.' : FINISHING[cfg.finishing.find((f) => binding.includes(f)) || 'staple'].blurb}</small>
+
+                    <div className={`es-artline es-artline--${art || 'none'}`}>
+                      <FileUp aria-hidden="true" />
+                      <div><small>Artwork</small><b>{artSummary}</b></div>
+                    </div>
+
+                    <div className="est-break">
+                      <h3>Where the money goes</h3>
+                      <div className="est-break__bar" aria-hidden="true">
+                        {[...est.breakdown, ...(fee ? [{ key: 'design', amount: fee }] : [])].filter((b) => b.amount > 0).map((b) => <i key={b.key} style={{ flexGrow: b.amount, background: PART_COLORS[b.key] || '#f15a4a' }} />)}
+                      </div>
+                      <ul>
+                        {est.breakdown.map((b) => (
+                          <li key={b.key}>
+                            <i style={{ background: PART_COLORS[b.key] }} aria-hidden="true" />
+                            <span>{b.label}</span>
+                            <b>{fmtMoney(b.amount, { cents: est.total < 100 })}</b>
+                          </li>
+                        ))}
+                        {fee > 0 && <li><i style={{ background: '#f15a4a' }} aria-hidden="true" /><span>Design (demo)</span><b>{fmtMoney(fee)}</b></li>}
+                        <li className="est-break__total"><span>Midpoint estimate</span><b>{fmtMoney(total, { cents: est.total < 100 })}</b></li>
+                      </ul>
+                      {est.minApplied && <p className="est-break__note">Small runs hit Henle’s job minimum, so the per-{p.unit} price is higher here.</p>}
+                    </div>
                   </div>
-                )}
-                {chips.length > 0 && (
-                  <div className="est-chips" role="group" aria-label="Finishing options">
-                    <button type="button" className={`est-chip-btn ${hasExtraFinish ? '' : 'is-on'}`} aria-pressed={!hasExtraFinish} onClick={() => update({ finishing: cfg.finishing.filter((f) => !chips.includes(f)) })}>
-                      <Check aria-hidden="true" /> None
-                    </button>
-                    {chips.map((id) => (
-                      <Choice key={id} type="checkbox" name="est-finish" value={id} checked={cfg.finishing.includes(id)} onChange={toggleFinish} className="est-choice--finish">
-                        <Check aria-hidden="true" />
-                        <strong>{FINISHING[id].label}</strong>
-                        <small>{FINISHING[id].blurb}</small>
-                      </Choice>
-                    ))}
+                  <div className="est-ticket__foot">
+                    {isLast
+                      ? <button type="submit" form="es-send-form" className="button est-cta">Get my exact quote <ArrowRight aria-hidden="true" /></button>
+                      : <button type="button" className="button est-cta" onClick={next}>{STEPS[stepIdx].next} <ArrowRight aria-hidden="true" /></button>}
+                    <p>No obligation. A real person in Marshall reviews your request. Prefer to talk? <a href="tel:+15075324493">507-532-4493</a></p>
+                    <p className="es-ticket__alt">Rather just ask? <Link to={quickQuote}>Send a quick quote request</Link></p>
+                    <button type="button" className="est-reset" onClick={reset}><RotateCcw aria-hidden="true" /> Start over</button>
                   </div>
-                )}
-              </Step>
+                </aside>
 
-              <Step n={7} id="est-s-turn" title="How soon?" hint="Standard is best value. Rush jumps the line.">
-                <div className="est-turns" role="radiogroup" aria-labelledby="est-s-turn">
-                  {TURNAROUND.map((t) => (
-                    <Choice key={t.id} name="est-turn" value={t.id} checked={cfg.turn === t.id} onChange={(v) => update({ turn: v })} className="est-choice--turn">
-                      <strong>{t.label}</strong>
-                      <small>{t.detail}</small>
-                      <em>{t.pct ? `+${Math.round(t.pct * 100)}%` : 'Base price'}</em>
-                    </Choice>
-                  ))}
-                </div>
-              </Step>
-            </div>
-
-            <aside className="est-ticket" id="est-result" aria-label="Your ballpark estimate">
-              <div className="est-ticket__head">
-                <span>Ballpark estimate</span>
-                <span>No. {ticketNo}</span>
-              </div>
-              <div className="est-ticket__body">
-                <p className="est-ticket__label">Your range</p>
-                <p className="est-ticket__range" style={{ '--len': range.length - 1 }} aria-hidden="true">{fmtMoney(Math.round(low))}<i>–</i>{fmtMoney(Math.round(high))}</p>
-                <p className="sr-only" role="status">Ballpark {range}, about {fmtEach(est.perPiece)} each.</p>
-                <p className="est-ticket__each">
-                  <b>≈ {fmtEach(each)}</b> each
-                  <span>{fmtEach(est.perLow)}–{fmtEach(est.perHigh)} · {fmtQty(est.qty)} {est.qty === 1 ? p.unit : p.noun}</span>
-                  {eachLabel && <span>{eachLabel} on average</span>}
-                </p>
-                <p className="est-chip"><Info aria-hidden="true" /> Demo rates · Henle’s real price list plugs in here</p>
-
-                <ul className="est-specs" aria-label="Job summary">
-                  <li>{p.label}</li>
-                  <li>{size.label}{p.extra ? ` · ${cfg.extra} ${p.extra.word}` : ''}</li>
-                  <li>{COLOR_MODES.find((c) => c.id === cfg.color).label}{p.sidesMode === 'locked1' ? '' : ` · ${cfg.sides === 2 ? '2-sided' : '1-sided'}`}</li>
-                  <li>{p.papers[cfg.paper].label}</li>
-                  {cfg.finishing.length > 0 && <li>{cfg.finishing.map((f) => FINISHING[f].label).join(', ')}</li>}
-                  <li>{est.turn.label} · {est.turn.detail}</li>
-                </ul>
-
-                <div className="est-break">
-                  <h3>Where the money goes</h3>
-                  <div className="est-break__bar" aria-hidden="true">
-                    {est.breakdown.filter((b) => b.amount > 0).map((b) => <i key={b.key} style={{ flexGrow: b.amount, background: PART_COLORS[b.key] }} />)}
+                <div className="est-dock">
+                  <div>
+                    <b>{range}</b>
+                    <span>≈ {fmtEach(est.perPiece + fee / est.qty)} each · {fmtQty(est.qty)} {est.qty === 1 ? p.unit : p.noun}</span>
                   </div>
-                  <ul>
-                    {est.breakdown.map((b) => (
-                      <li key={b.key}>
-                        <i style={{ background: PART_COLORS[b.key] }} aria-hidden="true" />
-                        <span>{b.label}</span>
-                        <b>{fmtMoney(b.amount, { cents: est.total < 100 })}</b>
-                      </li>
-                    ))}
-                    <li className="est-break__total"><span>Midpoint estimate</span><b>{fmtMoney(total, { cents: est.total < 100 })}</b></li>
-                  </ul>
-                  {est.minApplied && <p className="est-break__note">Small runs hit Henle’s job minimum, so the per-{p.unit} price is higher here.</p>}
+                  <a className="button button--small est-dock__link" href="#est-result">Card</a>
+                  {isLast
+                    ? <button type="submit" form="es-send-form" className="button button--small est-dock__cta">Get quote <ArrowRight aria-hidden="true" /></button>
+                    : <button type="button" className="button button--small est-dock__cta" onClick={next}>Next <ArrowRight aria-hidden="true" /></button>}
                 </div>
               </div>
-              <div className="est-ticket__foot">
-                <Link className="button est-cta" to={quoteTo}>Get an exact quote <ArrowRight aria-hidden="true" /></Link>
-                <p>No obligation. A real person in Marshall reviews your request. Prefer to talk? <a href="tel:+15075324493">507-532-4493</a></p>
-                <button type="button" className="est-reset" onClick={() => setCfg(makeConfig(cfg.product))}><RotateCcw aria-hidden="true" /> Reset this job</button>
-              </div>
-            </aside>
-
-            <div className="est-dock">
-              <div>
-                <b>{range}</b>
-                <span>≈ {fmtEach(est.perPiece)} each · {fmtQty(est.qty)} {est.qty === 1 ? p.unit : p.noun}</span>
-              </div>
-              <a className="button button--small est-dock__link" href="#est-result">Breakdown</a>
-              <Link className="button button--small est-dock__cta" to={quoteTo}>Exact quote <ArrowRight aria-hidden="true" /></Link>
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </section>
 
-      <section className="est-notes">
-        <div className="shell est-notes__grid">
-          <div>
-            <span className="eyebrow eyebrow--light">Behind the number</span>
-            <h2>A ballpark you can plan around.</h2>
+      {!order && (
+        <section className="est-notes">
+          <div className="shell est-notes__grid">
+            <div>
+              <span className="eyebrow eyebrow--light">Behind the number</span>
+              <h2>A ballpark you can plan around.</h2>
+            </div>
+            <article><h3>What’s in the range</h3><p>Press setup, file check, printing, paper, trimming, and any finishing you chose. We hold the range to roughly 10–15% either side of the midpoint.</p></article>
+            <article><h3>What can move it</h3><p>Artwork that needs cleanup, design time, heavy ink coverage, special stock, delivery or shipping, and sales tax. None of those are in this estimate.</p></article>
+            <article><h3>From ballpark to exact</h3><p>Send your request and a Henle specialist confirms stock, finishing, and timing, then follows up with a firm price. Prefer to skip the tool? <Link to="/quote">Request a quote directly.</Link></p></article>
           </div>
-          <article><h3>What’s in the range</h3><p>Press setup, file check, printing, paper, trimming, and any finishing you chose. We hold the range to roughly 10–15% either side of the midpoint.</p></article>
-          <article><h3>What can move it</h3><p>Artwork that needs cleanup, design time, heavy ink coverage, special stock, delivery or shipping, and sales tax. None of those are in this estimate.</p></article>
-          <article><h3>From ballpark to exact</h3><p>Send your quote request and a Henle specialist confirms stock, finishing, and timing, then follows up with a firm price.</p></article>
-        </div>
-      </section>
+        </section>
+      )}
     </>
   )
 }

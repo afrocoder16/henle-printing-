@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { CircleCheck, FileCheck2, LockKeyhole, UploadCloud } from 'lucide-react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import PageHero from '../components/PageHero'
 import SEO from '../components/SEO'
 import { services } from '../data'
@@ -61,6 +61,7 @@ export default function Quote() {
           <aside className="quote-aside reveal">
             <span className="eyebrow">What happens next</span>
             <h2>Helpful, human, and no pressure.</h2>
+            <p className="quote-aside__tool">Want a ballpark first? <Link to="/estimator">Try the project estimator</Link>: price, paper, and artwork in one place.</p>
             <ol>
               <li><span>1</span><div><strong>We review the details</strong><p>A print specialist looks at your specs and file.</p></div></li>
               <li><span>2</span><div><strong>We fill in the gaps</strong><p>We may call to confirm stock, finish, or timing.</p></div></li>

@@ -31,8 +31,9 @@ Edit [`src/monthlyPromo.js`](src/monthlyPromo.js). The homepage component automa
 | About page story, crew, quotes | [`src/aboutData.js`](src/aboutData.js) (crew portraits go in `public/team/`, 800 × 1000 px) |
 | Customer reviews | [`src/reviews.js`](src/reviews.js) (entries marked `sample: true` are placeholders) |
 | Portfolio pages and clients | [`src/portfolioData.js`](src/portfolioData.js), images made by `scripts/render-portfolio.py` |
-| Price Estimator / EDDM Planner demo rates | [`src/pages/tools/pricingData.js`](src/pages/tools/pricingData.js) (**demo data, not Henle's real prices**) |
-| Deadline Planner turnaround times and holidays | [`src/pages/tools/deadlineData.js`](src/pages/tools/deadlineData.js) |
+| Project Estimator / EDDM Planner demo rates | [`src/pages/tools/pricingData.js`](src/pages/tools/pricingData.js) (**demo data, not Henle's real prices**) |
+| Project Estimator flow (steps, deadlines, file check, free tools) | [`src/pages/tools/flow/flowLogic.js`](src/pages/tools/flow/flowLogic.js) and the step files beside it |
+| Production days and holidays used for "files due" dates | [`src/pages/tools/deadlineData.js`](src/pages/tools/deadlineData.js), `TURN_DAYS` in `flowLogic.js` |
 | Downloadable artwork templates | `python scripts/make-templates.py` |
 | Google Analytics | Build with `VITE_GA_ID=G-XXXXXXXXXX` (nothing loads without it) |
 

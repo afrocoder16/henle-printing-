@@ -9,7 +9,7 @@ import './tools.css'
 const U = 100 // SVG units per inch
 
 // A to-scale diagram of a print file: bleed, trim, and safe zone, with a sample design.
-function BleedDiagram({ tpl, bleed, extend, risky, trimmed, layers }) {
+export function BleedDiagram({ tpl, bleed, extend, risky, trimmed, layers }) {
   const b = bleed * U
   const W = tpl.w * U
   const H = tpl.h * U

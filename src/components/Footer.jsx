@@ -43,7 +43,6 @@ export default function Footer() {
           <h3>Explore</h3>
           <Link to="/about">About us</Link>
           <Link to="/portfolio">Portfolio</Link>
-          <Link to="/tools">All tools</Link>
           {tools.map((tool) => <Link key={tool.id} to={tool.path}>{tool.title}</Link>)}
         </div>
       </div>

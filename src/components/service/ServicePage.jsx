@@ -4,7 +4,7 @@ import { Link, NavLink } from 'react-router-dom'
 import CountUp from '../CountUp'
 import SEO from '../SEO'
 import Testimonials from '../Testimonials'
-import { tools } from '../../toolsData'
+import { toolById } from '../../toolsData'
 import { getService, serviceOrder, servicePages } from '../../serviceData'
 import { Photo, VideoSlot } from './media'
 import InkjetLab from './InkjetLab'
@@ -26,12 +26,12 @@ const labs = {
 
 // Which customer tools to feature on each service page.
 const serviceTools = {
-  inkjet: ['artwork', 'estimator', 'deadline'],
-  offset: ['paper', 'estimator', 'artwork'],
-  digital: ['estimator', 'deadline', 'artwork'],
-  design: ['artwork', 'paper', 'estimator'],
-  finishing: ['paper', 'estimator', 'deadline'],
-  mailing: ['eddm', 'deadline', 'estimator'],
+  inkjet: ['estimator', 'artwork'],
+  offset: ['estimator', 'artwork'],
+  digital: ['estimator', 'artwork'],
+  design: ['artwork', 'estimator'],
+  finishing: ['estimator', 'artwork'],
+  mailing: ['eddm', 'estimator'],
 }
 
 const labIntro = {
@@ -47,7 +47,7 @@ export default function ServicePage({ slug }) {
   const service = getService(slug)
   const [heroPhoto, ...otherPhotos] = service.photos
   const quoteTo = `/quote?service=${service.slug}`
-  const featuredTools = serviceTools[slug].map((id) => tools.find((tool) => tool.id === id))
+  const featuredTools = serviceTools[slug].map((id) => toolById[id])
 
   const schema = useMemo(() => ({
     '@context': 'https://schema.org',

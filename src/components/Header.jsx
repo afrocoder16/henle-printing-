@@ -8,7 +8,7 @@ import { tools } from '../toolsData'
 const nav = [
   ['About', '/about'],
   ['Services', '/services', serviceOrder.map((slug) => [servicePages[slug].title, servicePages[slug].path])],
-  ['Tools', '/tools', tools.map((tool) => [tool.title, tool.path])],
+  ['Tools', '/estimator', tools.map((tool) => [tool.title, tool.path])],
   ['Portfolio', '/portfolio'],
   ['Contact', '/contact'],
 ]

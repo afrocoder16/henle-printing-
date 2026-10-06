@@ -13,13 +13,11 @@ export default function Services() {
       <section className="section service-detail-section">
         <div className="shell service-detail-list">
           {services.map((service, index) => {
-            const Icon = service.icon
             return (
               <article id={service.slug} className={`service-detail service-detail--${service.color} ${index % 2 ? 'service-detail--reverse' : ''}`} key={service.slug}>
                 <div className="service-detail__visual reveal">
+                  <img src={`${import.meta.env.BASE_URL}services/${servicePages[service.slug].photos[0].file}`} alt={servicePages[service.slug].photos[0].caption} loading={index ? 'lazy' : 'eager'} />
                   <span className="service-detail__number">{service.number}</span>
-                  <Icon aria-hidden="true" />
-                  <div className="service-detail__pattern" aria-hidden="true"><i /><i /><i /><i /><i /></div>
                 </div>
                 <div className="service-detail__copy reveal">
                   <span className="eyebrow">{service.title}</span>

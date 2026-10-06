@@ -397,7 +397,7 @@
 .sp-tools__card b { display: inline-flex; align-items: center; gap: 8px; margin-top: auto; padding-bottom: 3px; border-bottom: 2px solid var(--tc, var(--cyan)); width: fit-content; font-size: .74rem; }
 .sp-tools__card b svg { width: 15px; height: 15px; transition: transform .2s ease; }
 .sp-tools__card:hover b svg { transform: translateX(5px); }
-@media (min-width: 700px) { .sp-tools__grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 700px) { .sp-tools__grid { grid-template-columns: repeat(2, 1fr); } }
 
 .sp-media__grid--novideo .sp-media__photo img { aspect-ratio: 4 / 3; }
 @media (min-width: 600px) { .sp-media__grid--novideo { grid-template-columns: 1fr 1fr; } }
