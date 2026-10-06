@@ -82,9 +82,21 @@ export default function Home() {
       <section className="story-section section" id="about">
         <div className="shell story-grid">
           <div className="story-art reveal">
-            <div className="story-sheet story-sheet--one"><span>H</span></div>
-            <div className="story-sheet story-sheet--two"><strong>45</strong><small>YEARS OF<br />GOOD IMPRESSIONS</small></div>
-            <div className="story-sheet story-sheet--three"><i /><i /><i /><i /></div>
+            <div className="story-sheet story-sheet--one">
+              <img src={`${import.meta.env.BASE_URL}history/main-street.jpg`} alt="A vintage photograph of Marshall’s Main Street with a Henle Printing sign over the sidewalk" loading="lazy" />
+              <span>H</span>
+            </div>
+            <div className="story-sheet story-sheet--two">
+              <img src={`${import.meta.env.BASE_URL}history/linotype.jpg`} alt="A.J. Henle at a Linotype machine" loading="lazy" />
+              <strong>45</strong><small>YEARS OF<br />GOOD IMPRESSIONS</small>
+            </div>
+            <div className="story-sheet story-sheet--three">
+              <img src={`${import.meta.env.BASE_URL}pics/mike.jpg`} alt="Mike Henle in a blue Henle Printing polo, standing in front of framed family photographs" loading="lazy" />
+              <div className="story-sheet__strip">
+                <span>Mike Henle<small>Third-generation owner</small></span>
+                <i /><i /><i /><i />
+              </div>
+            </div>
           </div>
           <div className="story-copy reveal">
             <span className="eyebrow">About Henle</span>

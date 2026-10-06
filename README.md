@@ -29,7 +29,7 @@ Edit [`src/monthlyPromo.js`](src/monthlyPromo.js). The homepage component automa
 | Service page words, facts, photo slots, YouTube video IDs | [`src/serviceData.js`](src/serviceData.js) |
 | Photos on service pages | Drop JPGs into `public/services/` using the file names in `serviceData.js` |
 | About page story, crew, quotes | [`src/aboutData.js`](src/aboutData.js) (crew portraits go in `public/team/`, 800 × 1000 px) |
-| Customer reviews | [`src/reviews.js`](src/reviews.js) (entries marked `sample: true` are placeholders) |
+| Customer reviews | [`src/reviews.js`](src/reviews.js) (12 Google reviews + 1 Facebook comment, exactly as posted; delete an entry to hide it) |
 | Portfolio pages and clients | [`src/portfolioData.js`](src/portfolioData.js), images made by `scripts/render-portfolio.py` |
 | Project Estimator / EDDM Planner demo rates | [`src/pages/tools/pricingData.js`](src/pages/tools/pricingData.js) (**demo data, not Henle's real prices**) |
 | Project Estimator flow (steps, deadlines, file check, free tools) | [`src/pages/tools/flow/flowLogic.js`](src/pages/tools/flow/flowLogic.js) and the step files beside it |

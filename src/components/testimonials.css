@@ -9,30 +9,30 @@
 .rv-stars svg { width: 18px; height: 18px; fill: rgba(16,42,67,.14); stroke: none; }
 .rv-stars svg.on { fill: var(--gold); }
 .rv__card { position: relative; margin: 0; padding: 38px 26px 26px; background: var(--navy); color: var(--paper); box-shadow: 14px 14px 0 var(--gold); animation: sheet-in .55s cubic-bezier(.22,.75,.24,1) both; }
-.rv__card.is-sample { background: var(--white); color: var(--navy); box-shadow: 14px 14px 0 rgba(242,177,52,.4); outline: 2px dashed rgba(16,42,67,.35); outline-offset: -2px; }
 .rv__mark { position: absolute; right: 20px; top: 18px; width: 52px; height: 52px; color: var(--coral); opacity: .55; }
-.rv__tag { position: absolute; left: 26px; top: 14px; padding: 3px 9px; background: var(--gold); color: var(--ink); font-size: .54rem; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
 .rv__card blockquote { margin: 14px 0 22px; padding-right: 36px; font: 500 clamp(1.4rem, 4vw, 2.2rem)/1.3 var(--display); letter-spacing: -.025em; }
 .rv__card figcaption { display: grid; gap: 3px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.2); }
-.rv__card.is-sample figcaption { border-top-color: rgba(16,42,67,.2); }
 .rv__card figcaption b { font-size: .9rem; }
 .rv__card figcaption small { color: #aebdc8; font-size: .68rem; font-weight: 700; }
-.rv__card.is-sample figcaption small { color: var(--muted); }
 .rv__card .rv-stars { margin-bottom: 8px; }
 .rv__card .rv-stars svg { fill: rgba(255,255,255,.25); }
 .rv__card .rv-stars svg.on { fill: var(--gold); }
-.rv__card.is-sample .rv-stars svg { fill: rgba(16,42,67,.16); }
-.rv__card.is-sample .rv-stars svg.on { fill: var(--gold); }
-.rv__dots { display: flex; gap: 10px; }
-.rv__dots button { width: 34px; height: 8px; padding: 0; border: 0; background: rgba(16,42,67,.22); cursor: pointer; transition: background .2s ease, width .25s ease; }
-.rv__dots button.active { width: 56px; background: var(--coral); }
+.rv__nav { display: flex; align-items: center; gap: 14px; }
+.rv__nav button { display: grid; place-items: center; width: 46px; height: 46px; border: 2px solid var(--navy); background: transparent; color: var(--navy); cursor: pointer; transition: background .2s ease, color .2s ease, transform .2s ease; }
+.rv__nav button:hover { background: var(--navy); color: var(--paper); transform: translateY(-2px); }
+.rv__nav button svg { width: 20px; height: 20px; }
+.rv__nav span { min-width: 64px; color: var(--muted); font-size: .8rem; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
+.rv__nav b { color: var(--navy); }
+.rv__card.is-long blockquote { font-size: clamp(1.15rem, 3vw, 1.6rem); line-height: 1.4; }
+.rv__card figcaption a { display: inline-flex; align-items: center; gap: 5px; width: fit-content; margin-top: 8px; color: var(--gold); font-size: .7rem; font-weight: 800; border-bottom: 1px solid currentColor; }
+.rv__card figcaption a svg { width: 13px; height: 13px; }
 .rv--compact .rv__rating > b { font-size: 3.2rem; }
 .rv--compact .rv__card blockquote { font-size: clamp(1.2rem, 3.2vw, 1.7rem); }
 
 @media (min-width: 900px) {
   .rv { padding: 100px 0; }
   .rv__grid { grid-template-columns: .8fr 1.2fr; gap: 90px; }
-  .rv__dots { grid-column: 2; }
+  .rv__nav { grid-column: 2; }
   .rv__card { padding: 46px 44px 32px; }
   .rv--compact { padding: 70px 0; }
 }

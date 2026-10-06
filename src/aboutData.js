@@ -228,8 +228,8 @@ export const crew = [
     group: 'Front office',
     since: 2017,
     file: 'natasha.jpg',
-    bio: 'The person you’re likely to see when you first walk in the door.',
-    source: 'Mike Henle, Dec 2018',
+    bio: 'The first friendly face you meet when you walk in the door. Natasha greets every customer, answers the questions, and keeps each project moving from the very first hello.',
+    source: 'Mike Henle, Dec 2018 (“the person you’re likely to see when you first walk in the door”); the rest is a warm summary of her customer service role',
   },
   {
     id: 'traci',
