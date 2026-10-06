@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import PageHero from '../components/PageHero'
 import SEO from '../components/SEO'
 import { services } from '../data'
+import { servicePages } from '../serviceData'
 
 export default function Services() {
   return (
@@ -27,9 +28,12 @@ export default function Services() {
                   <ul>
                     {service.applications.map((item) => <li key={item}><Check size={17} /> {item}</li>)}
                   </ul>
-                  <Link to={service.slug === 'mailing' ? '/mailing' : `/quote?service=${service.slug}`} className="button button--dark">
-                    {service.slug === 'mailing' ? 'Explore mailing' : `Quote ${service.title.toLowerCase()}`} <ArrowRight />
-                  </Link>
+                  <div className="service-detail__actions">
+                    <Link to={servicePages[service.slug].path} className="button button--dark">
+                      Explore {service.title.toLowerCase()} <ArrowRight />
+                    </Link>
+                    <Link to={`/quote?service=${service.slug}`} className="text-link">Quote it</Link>
+                  </div>
                 </div>
               </article>
             )

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-export default function CountUp({ end, start = 0, prefix = '', suffix = '', decimals = 0, duration = 1400, label }) {
+export default function CountUp({ end, start = 0, prefix = '', suffix = '', decimals = 0, duration = 1400, label, group = false }) {
   const [value, setValue] = useState(start)
   const elementRef = useRef(null)
   const hasRun = useRef(false)
@@ -38,7 +38,7 @@ export default function CountUp({ end, start = 0, prefix = '', suffix = '', deci
     return () => observer.disconnect()
   }, [end, start, duration])
 
-  const display = Number(value).toFixed(decimals)
+  const display = group ? Number(value).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) : Number(value).toFixed(decimals)
 
   return (
     <strong ref={elementRef} className="count-up">

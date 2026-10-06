@@ -3,11 +3,18 @@ import { Link } from 'react-router-dom'
 import SEO from '../components/SEO'
 import RegistrationMark from '../components/RegistrationMark'
 import ServiceCard from '../components/ServiceCard'
-import PortfolioArt from '../components/PortfolioArt'
 import PromoSection from '../components/PromoSection'
 import CountUp from '../components/CountUp'
 import MonthlyPromo from '../components/MonthlyPromo'
-import { portfolioItems, services } from '../data'
+import Testimonials from '../components/Testimonials'
+import { services } from '../data'
+import { pageImage, pages } from '../portfolioData'
+
+const featuredWork = [
+  { number: 20, title: 'Marshall High School' },
+  { number: 6, title: 'Pioneer Public Television' },
+  { number: 18, title: 'Community events & guides' },
+].map(({ number, title }) => ({ page: pages.find((p) => p.number === number), title }))
 
 export default function Home() {
   return (
@@ -21,6 +28,7 @@ export default function Home() {
           <div className="home-hero__copy reveal">
             <div className="hero-proof"><span className="rating">★ 4.7</span><span>Trusted across southwest Minnesota</span></div>
             <h1><span>Your idea.</span><em><span>Beautifully</span><span>printed.</span></em></h1>
+            <p className="hero-services">Digital • Offset • Inkjet • Mailing • Design</p>
             <p className="hero-lede">From first sketch to final delivery, Henle pairs 45+ years of craftsmanship with the equipment to make every piece count.</p>
             <div className="hero-actions">
               <Link className="button" to="/quote">Get a quote <ArrowUpRight /></Link>
@@ -92,7 +100,7 @@ export default function Home() {
               <div><span>3 generations</span><strong>Family printing heritage</strong></div>
               <div><span>Today</span><strong>Family & locally owned</strong></div>
             </div>
-            <Link to="/contact" className="text-link">Meet your local printer <ArrowRight /></Link>
+            <Link to="/about" className="text-link">Meet your local printer <ArrowRight /></Link>
           </div>
         </div>
       </section>
@@ -104,15 +112,17 @@ export default function Home() {
             <Link to="/portfolio" className="text-link">View the portfolio <ArrowRight /></Link>
           </div>
           <div className="home-work-grid">
-            {portfolioItems.slice(0, 3).map((item) => (
-              <article className="home-work-item reveal" key={item.id}>
-                <PortfolioArt type={item.type} />
-                <div><span>{item.category}</span><h3>{item.title}</h3></div>
-              </article>
+            {featuredWork.map(({ page, title }) => (
+              <Link className="home-work-item reveal" key={page.number} to={`/portfolio?page=${page.number}`}>
+                <div className="home-work-item__sheet"><img src={pageImage(page.number)} alt="" loading="lazy" width="1100" height="1424" /></div>
+                <div><span>{page.collection.short}</span><h3>{title}</h3></div>
+              </Link>
             ))}
           </div>
         </div>
       </section>
+
+      <Testimonials />
 
       <section className="process section">
         <div className="shell process-grid">

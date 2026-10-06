@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# Concept page, not part of the live site map
+Disallow: /portfolio-b
+
+Sitemap: https://www.henleprinting.com/sitemap.xml

@@ -1,0 +1,16 @@
+.nl { display: grid; gap: 12px; }
+.nl label b { display: block; font-size: .86rem; }
+.nl label small { display: block; margin-top: 2px; font-size: .66rem; font-weight: 600; opacity: .8; }
+.nl__row { display: flex; gap: 8px; }
+.nl input { flex: 1 1 auto; min-width: 0; padding: 11px 13px; border: 1px solid rgba(255,255,255,.3); background: rgba(255,255,255,.08); color: var(--paper); font-size: .9rem; }
+.nl input::placeholder { color: #8fa5b4; }
+.nl .button { flex: 0 0 auto; background: var(--gold); border-color: var(--gold); color: var(--ink); }
+.nl .button:hover { box-shadow: 4px 4px 0 var(--cyan); }
+.nl__done { display: flex; align-items: center; gap: 10px; margin: 0; font-size: .84rem; }
+.nl__done svg { flex: 0 0 auto; width: 26px; height: 26px; padding: 5px; border-radius: 50%; background: var(--gold); color: var(--ink); }
+.nl--footer { max-width: 440px; margin-top: 22px; }
+.nl--footer label { color: var(--paper); }
+.nl--band { width: 100%; max-width: 460px; color: var(--paper); }
+@media (min-width: 900px) {
+  .nl--band label small { max-width: 260px; }
+}

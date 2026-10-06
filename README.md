@@ -22,6 +22,22 @@ The visual QA command expects the Vite development server to be running at `http
 
 Edit [`src/monthlyPromo.js`](src/monthlyPromo.js). The homepage component automatically applies the edition, headline, message, offer, notice, highlights, calendar date, and CTA.
 
+## Where things live
+
+| To change… | Edit |
+| --- | --- |
+| Service page words, facts, photo slots, YouTube video IDs | [`src/serviceData.js`](src/serviceData.js) |
+| Photos on service pages | Drop JPGs into `public/services/` using the file names in `serviceData.js` |
+| About page story, crew, quotes | [`src/aboutData.js`](src/aboutData.js) (crew portraits go in `public/team/`, 800 × 1000 px) |
+| Customer reviews | [`src/reviews.js`](src/reviews.js) (entries marked `sample: true` are placeholders) |
+| Portfolio pages and clients | [`src/portfolioData.js`](src/portfolioData.js), images made by `scripts/render-portfolio.py` |
+| Price Estimator / EDDM Planner demo rates | [`src/pages/tools/pricingData.js`](src/pages/tools/pricingData.js) (**demo data, not Henle's real prices**) |
+| Deadline Planner turnaround times and holidays | [`src/pages/tools/deadlineData.js`](src/pages/tools/deadlineData.js) |
+| Downloadable artwork templates | `python scripts/make-templates.py` |
+| Google Analytics | Build with `VITE_GA_ID=G-XXXXXXXXXX` (nothing loads without it) |
+
+All forms on this sample site are front-end only: they show a success message and send nothing.
+
 ## Deployment
 
 Every push to `main` builds and deploys the site through GitHub Pages.

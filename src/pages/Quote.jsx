@@ -1,4 +1,5 @@
-import { FileCheck2, LockKeyhole, UploadCloud } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { CircleCheck, FileCheck2, LockKeyhole, UploadCloud } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import PageHero from '../components/PageHero'
 import SEO from '../components/SEO'
@@ -6,9 +7,12 @@ import { services } from '../data'
 
 export default function Quote() {
   const [params] = useSearchParams()
+  const [submitted, setSubmitted] = useState(null)
+  const successRef = useRef(null)
   const selectedService = params.get('service') || ''
   const selectedProject = params.get('project') || ''
   const selectedFeel = params.get('feel') || ''
+  const neededBy = params.get('needed') || ''
   const projectLabels = {
     'business-cards': 'business cards',
     'direct-mail': 'a direct mail campaign',
@@ -21,9 +25,32 @@ export default function Quote() {
     tactile: 'natural and tactile',
     durable: 'bold and durable',
   }
+  const finishLabels = {
+    softtouch: 'soft-touch',
+    spotuv: 'spot UV',
+    foil: 'gold foil',
+    emboss: 'embossing',
+  }
+  const selectedFinishes = (params.get('finish') || '').split(',').filter(Boolean).map((f) => finishLabels[f] || f)
+  const finishText = selectedFinishes.length > 1
+    ? `${selectedFinishes.slice(0, -1).join(', ')} and ${selectedFinishes.at(-1)}`
+    : selectedFinishes[0]
   const starterDescription = selectedProject
-    ? `I’m interested in ${projectLabels[selectedProject] || selectedProject}${selectedFeel ? ` with a ${feelLabels[selectedFeel] || selectedFeel} direction` : ''}. `
+    ? `I’m interested in ${projectLabels[selectedProject] || selectedProject}${selectedFeel ? ` with a ${feelLabels[selectedFeel] || selectedFeel} direction` : ''}${finishText ? `, including ${finishText} finishes` : ''}. `
     : ''
+
+  useEffect(() => {
+    if (submitted) {
+      successRef.current?.focus()
+      successRef.current?.scrollIntoView({ block: 'center' })
+    }
+  }, [submitted])
+
+  const handleSubmit = (event) => {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    setSubmitted({ name: data.get('First name'), email: data.get('Email') })
+  }
 
   return (
     <>
@@ -42,11 +69,16 @@ export default function Quote() {
             <div className="quote-contact"><small>Prefer to talk?</small><a href="tel:+15075324493">507-532-4493</a><span>Mon–Thu 8–5 · Fri 8–noon</span></div>
           </aside>
 
-          <form className="project-form reveal" action="https://formsubmit.co/info@henleprinting.com" method="POST" encType="multipart/form-data">
-            <input type="hidden" name="_subject" value="New Henle Printing website quote request" />
-            <input type="hidden" name="_template" value="table" />
-            <input type="hidden" name="_captcha" value="false" />
-            <input className="form-honeypot" type="text" name="_honey" aria-label="Leave this field blank" tabIndex="-1" autoComplete="off" />
+          {submitted ? (
+            <div className="quote-success reveal" ref={successRef} tabIndex="-1" role="status">
+              <CircleCheck aria-hidden="true" />
+              <h2>Your quote request has been submitted.</h2>
+              <p>Thank you, {submitted.name}. A member of the Henle team will review your project and follow up at {submitted.email}.</p>
+              <p>Need it sooner? Call us at <a href="tel:+15075324493">507-532-4493</a>.</p>
+              <button className="button" type="button" onClick={() => setSubmitted(null)}>Submit another request</button>
+            </div>
+          ) : (
+          <form className="project-form reveal" onSubmit={handleSubmit}>
             <fieldset>
               <legend>About you</legend>
               <div className="form-row">
@@ -70,8 +102,19 @@ export default function Quote() {
               </div>
               <div className="form-row">
                 <label>Finished size<input name="Finished size" placeholder="e.g. 8.5 × 11 in" /></label>
-                <label>Needed by<input type="date" name="Needed by" /></label>
+                <label>Needed by<input type="date" name="Needed by" defaultValue={neededBy} /></label>
               </div>
+              <div className="form-row">
+                <label>Color / ink<select name="Color / ink" defaultValue="">
+                  <option value="">Not sure yet</option>
+                  <option>Full color (CMYK)</option>
+                  <option>Black &amp; white</option>
+                  <option>One or two spot colors</option>
+                  <option>Full color plus spot / specialty ink</option>
+                </select></label>
+                <label>Paper preference<input name="Paper preference" placeholder="e.g. 100 lb gloss, uncoated, recycled" /></label>
+              </div>
+              <label>Finishing / bindery<input name="Finishing / bindery" placeholder="e.g. folding, saddle stitch, die cut, laminating" /></label>
               <label>Tell us about the project <span>*</span><textarea name="Project description" rows="5" defaultValue={starterDescription} placeholder="Format, color, paper, finishing, mailing, or anything else you know…" required /></label>
               <label className="file-drop">
                 <UploadCloud />
@@ -79,11 +122,12 @@ export default function Quote() {
                 <small>PDF, AI, EPS, PNG, JPG, or TIFF · Maximum 10 MB</small>
                 <input type="file" name="attachment" accept=".pdf,.ai,.eps,.png,.jpg,.jpeg,.tif,.tiff,application/pdf,image/png,image/jpeg,image/tiff,application/postscript" />
               </label>
-              <label className="checkbox-label"><input type="checkbox" name="Design help requested" value="Yes" /> <span>I would like help with design or file preparation.</span></label>
+              <label className="checkbox-label"><input type="checkbox" name="Design help requested" value="Yes" defaultChecked={params.get('design') === '1'} /> <span>I would like help with design or file preparation.</span></label>
             </fieldset>
             <button className="button button--submit" type="submit">Send my project <FileCheck2 /></button>
             <p className="privacy-note"><LockKeyhole size={14} /> Your information and files are used only to prepare your quote.</p>
           </form>
+          )}
         </div>
       </section>
     </>

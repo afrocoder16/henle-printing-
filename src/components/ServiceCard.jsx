@@ -1,5 +1,6 @@
 import { ArrowUpRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { servicePages } from '../serviceData'
 
 export default function ServiceCard({ service }) {
   const Icon = service.icon
@@ -11,7 +12,7 @@ export default function ServiceCard({ service }) {
       </div>
       <h3>{service.title}</h3>
       <p>{service.description}</p>
-      <Link to={`/services#${service.slug}`}>
+      <Link to={servicePages[service.slug].path}>
         Explore service <ArrowUpRight size={17} />
       </Link>
     </article>

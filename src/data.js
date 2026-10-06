@@ -88,11 +88,3 @@ export const services = [
   },
 ]
 
-export const portfolioItems = [
-  { id: 'cards', title: 'Brand cards', category: 'Business', type: 'cards', className: 'wide', note: 'Uncoated stock · 2-color' },
-  { id: 'poster', title: 'Arts poster', category: 'Large format', type: 'poster', className: 'tall', note: '24 × 36 in · Satin' },
-  { id: 'postcard', title: 'Seasonal postcard', category: 'Mail', type: 'postcard', className: '', note: 'Variable data · UV coated' },
-  { id: 'menu', title: 'Field-to-table menu', category: 'Hospitality', type: 'menu', className: 'tall', note: 'Folded · Soft-touch' },
-  { id: 'labels', title: 'Product label suite', category: 'Labels', type: 'labels', className: '', note: 'Die-cut · Roll labels' },
-  { id: 'booklet', title: 'Community annual', category: 'Publications', type: 'booklet', className: 'wide', note: 'Saddle stitch · 48 pages' },
-]

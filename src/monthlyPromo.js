@@ -1,15 +1,18 @@
 // Update this single object each month. The MonthlyPromo component handles layout.
+// `theme` is optional ('fall' adds falling leaves and a warm palette); `countdown` is optional too.
 export const monthlyPromo = {
-  edition: 'September 2026',
+  edition: 'October 2026',
+  theme: 'fall',
   kicker: 'The monthly press note',
-  title: 'Fall starts on paper.',
+  title: 'Fall is here.',
   description:
-    'Labor Day promotions, homecoming events, fall menus, and year-end mail campaigns all arrive faster than expected. Get the next project on the press calendar now.',
-  offerLabel: 'September extra',
-  offer: 'Complimentary paper-and-finish consultation with every new fall campaign quote.',
-  notice: 'Planning around Labor Day? Send your project early so we can help protect your preferred delivery date.',
-  ctaLabel: 'Plan a fall project',
+    'Harvest festivals, homecoming, holiday cards, and year-end mailers are all lining up for the press. Get yours on the calendar now—before the leaves (and the deadlines) start falling.',
+  offerLabel: 'October extra',
+  offer: 'Quote a holiday card or year-end mailer in October and we’ll include a complimentary printed proof before the full run.',
+  notice: 'Holiday card season starts now. Order early for the widest choice of stocks and delivery dates.',
+  ctaLabel: 'Start a fall project',
   ctaLink: '/quote?project=fall-campaign',
-  highlights: ['Direct mail', 'Event posters', 'Menus & inserts'],
-  calendar: { month: 'SEP', day: '07', label: 'LABOR DAY' },
+  highlights: ['Holiday cards', 'Year-end mailers', 'Harvest & homecoming events'],
+  calendar: { month: 'OCT', day: '05', label: 'FALL IS HERE' },
+  countdown: { label: 'until Thanksgiving', date: '2026-11-26' },
 }

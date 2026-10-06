@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom'
 import { ArrowUpRight } from 'lucide-react'
 import Logo from './Logo'
+import { servicePages, serviceOrder } from '../serviceData'
+import { tools } from '../toolsData'
+import NewsletterSignup from './NewsletterSignup'
 
 export default function Footer() {
   return (
@@ -18,6 +21,7 @@ export default function Footer() {
         <div className="footer-brand">
           <Logo footer />
           <p>Southwest Minnesota’s printer of choice since 1980.</p>
+          <NewsletterSignup variant="footer" id="footer-press-note" />
         </div>
         <div>
           <h3>Visit</h3>
@@ -31,10 +35,16 @@ export default function Footer() {
           <a href="mailto:info@henleprinting.com">info@henleprinting.com</a>
         </div>
         <div>
+          <h3>Services</h3>
+          <Link to="/services">All services</Link>
+          {serviceOrder.map((slug) => <Link key={slug} to={servicePages[slug].path}>{servicePages[slug].title}</Link>)}
+        </div>
+        <div>
           <h3>Explore</h3>
-          <Link to="/services">Services</Link>
+          <Link to="/about">About us</Link>
           <Link to="/portfolio">Portfolio</Link>
-          <Link to="/mailing">Mailing</Link>
+          <Link to="/tools">All tools</Link>
+          {tools.map((tool) => <Link key={tool.id} to={tool.path}>{tool.title}</Link>)}
         </div>
       </div>
       <div className="footer-bottom shell">
